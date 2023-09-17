@@ -1,0 +1,24 @@
+#!/bin/python3
+
+import os
+import subprocess
+import getpass
+
+from constants import *
+
+
+os.chdir(os.path.dirname(os.path.realpath(__file__)))
+
+username = getpass.getuser()
+rosdistro = DEFAULT_ROS_DISTRO
+
+command = [
+        'docker',
+        'exec',
+        '-it',
+        '--user=0',
+        CONTAINER_NAME.substitute(rosdistro=rosdistro),
+        'bash',
+    ]
+
+subprocess.call(command)

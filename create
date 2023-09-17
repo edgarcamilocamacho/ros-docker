@@ -1,0 +1,67 @@
+#!/bin/python3
+
+import os
+import getpass
+import argparse
+
+from tools import print_docker_command
+from constants import *
+
+
+os.chdir(os.path.dirname(os.path.realpath(__file__)))
+
+parser = argparse.ArgumentParser(
+        prog='./run',
+        description='Creates a ROS container',
+    )
+
+parser.add_argument('-v', '--verbose', action='store_true')
+parser.add_argument('-d', '--distro', default=DEFAULT_ROS_DISTRO)
+parser.add_argument('-n', '--name')
+parser.add_argument('--rm', action='store_true')
+
+args = parser.parse_args()
+
+verbose = args.verbose
+rosdistro = args.distro
+if args.name is None:
+    container_name = CONTAINER_NAME.substitute(rosdistro=rosdistro)
+else:
+    container_name = args.name
+remove = args.rm 
+
+username = getpass.getuser()
+
+if verbose:
+    print()
+    print(f'rosdistro:      \'{rosdistro}\'')
+    print(f'container_name: \'{container_name}\'')
+    print(f'username:       \'{username}\'')
+
+command = [
+        'docker',
+        'run',
+        '-it' if remove else '',
+        '--rm' if remove else '',
+        '--detach' if not remove else '',
+        f'--name={container_name}',
+        f'--user={os.getuid()}:{os.getgid()}',
+        '--env="DISPLAY"',
+        '--env-file=./env',
+        '--network=host',
+        f'--workdir=/home/{username}',
+        f'--volume=/home/{username}:/home/{username}',
+        '--volume=/etc/group:/etc/group:ro',
+        '--volume=/etc/passwd:/etc/passwd:ro',
+        '--volume=/etc/shadow:/etc/shadow:ro',
+        '--volume=/etc/sudoers.d:/etc/sudoers.d:ro',
+        '--volume=/tmp/.X11-unix:/tmp/.X11-unix:rw',
+        f'--volume=./.bashrc:/home/{username}/.bashrc',
+        BASE_IMAGE_NAME.substitute(rosdistro=rosdistro),
+        'tail -f /dev/null'
+    ]
+
+if args.verbose:
+    print_docker_command(command)
+
+os.system(' '.join(command))
